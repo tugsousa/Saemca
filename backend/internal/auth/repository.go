@@ -1,0 +1,1 @@
+# Interface for DB interactions (save user, find by email)

@@ -1,0 +1,1 @@
+# Interface for Business logic (check availability, calculate distance)
