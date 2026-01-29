@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgis/postgis:18-3.6
+    container_name: saude_em_casa_db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./migrations:/docker-entrypoint-initdb.d
+
+volumes:
+  postgres_data:
