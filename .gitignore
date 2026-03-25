@@ -1,1 +1,35 @@
+# Environment & Secrets — NEVER commit these
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Go
+backend/bin/
+backend/tmp/
+*.exe
+*.test
+*.out
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (local data)
+infra/postgres_data/
+infra/minio_data/

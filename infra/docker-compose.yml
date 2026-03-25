@@ -1,19 +1,49 @@
 services:
+
+  # ── PostgreSQL + PostGIS ────────────────────────────────────────────────────
   db:
-    image: postgis/postgis:18-3.6
-    container_name: saude_em_casa_db
-    restart: always
-    env_file:
-      - .env
+    image: postgis/postgis:17-3.5
+    container_name: salusdomi_db
+    restart: unless-stopped
+    env_file: .env
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB:       ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
-      - ./migrations:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d  # runs all .sql on first start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO — S3-compatible object storage (dev only) ──────────────────────
+  # In production this is replaced by Cloudflare R2.
+  # Same AWS S3 API — no code changes needed, just swap env vars.
+  minio:
+    image: minio/minio:latest
+    container_name: salusdomi_minio
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"   # S3 API — used by the Go backend
+      - "9001:9001"   # Web console — open http://localhost:9001 in browser
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+  minio_data:

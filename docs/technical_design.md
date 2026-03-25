@@ -99,6 +99,37 @@ Every API response (Success or Error) must return this JSON structure:
 * `estimated_duration` (Integer, minutes) -- Crucial for matching engine
 * `surge_multiplier` (Decimal) -- For night/weekend rates
 
+### Disputes Table
+* `id` (PK, UUID)
+* `booking_id` (FK)
+* `opened_by` (FK, User) — CLIENT or PRO
+* `opened_by_role` (Enum: CLIENT, PRO)
+* `reason_category` (Enum: NO_SHOW, INCOMPLETE_SERVICE, SAFETY_CONCERN, ...)
+* `description` (Text)
+* `status` (Enum: OPEN, UNDER_REVIEW, RESOLVED, APPEALED)
+* `resolution` (Enum: PRO_WIN, CLIENT_WIN, SPLIT, MUTUAL — nullable until resolved)
+* `split_pro_percent` (Integer 0–100 — only for SPLIT and MUTUAL)
+* `decision_message` (Text — shown to both parties)
+* `admin_notes` (Text — internal only)
+* `sla_paused` (Boolean — true while awaiting more info)
+* `evidence_deadline`, `resolution_deadline` (Timestamps)
+* `appeal_status` (Enum: null, REQUESTED, UPHELD, OVERTURNED)
+* See [docs/disputes.md](disputes.md) for the full spec.
+
+### Dispute_Evidence Table
+* `id` (PK, UUID)
+* `dispute_id` (FK)
+* `submitted_by` (FK, User)
+* `statement` (Text)
+* `storage_key` (Text — optional file attachment in R2)
+
+### Dispute_Messages Table
+* `id` (PK, UUID)
+* `dispute_id` (FK)
+* `sender_id`, `recipient_id` (FK, User)
+* `message` (Text)
+* `is_internal` (Boolean — TRUE = admin-only, not shown to parties)
+
 ---
 
 ## 4. Component Definitions
@@ -165,9 +196,15 @@ Every API response (Success or Error) must return this JSON structure:
 
 **7. Double-Handshake & Dispute State Machine**
 * **Purpose:** To ensure fair payment and professional accountability.
-* **Logic:** * When a Pro marks a visit as finished, status becomes `COMPLETED_PRO`.
-    * Client is notified. If Client selects "Report Issue", status moves to `DISPUTED`.
-    * **Dispute Protocol:** Payment remains in `AUTHORIZED` state. An Admin must manually resolve to either `COMPLETED` (Capture Funds) or `CANCELLED` (Release Authorization).
+* **Full spec:** See [docs/disputes.md](disputes.md) — this is the authoritative document for all dispute logic.
+* **Summary:**
+    * When a Pro marks a visit as finished, status becomes `COMPLETED_PRO`.
+    * Client has 6 hours to confirm or open a dispute. Auto-captures on timer expiry.
+    * **Either CLIENT or PRO** can open a dispute → status `DISPUTED`, payment frozen.
+    * 48h evidence window → Admin review (5 business day SLA) → PRO_WIN / CLIENT_WIN / SPLIT / MUTUAL.
+    * Mutual resolution requires **explicit confirmation from both parties**.
+    * 48h appeal window after resolution — requires new evidence, reviewed by a different Admin.
+    * Professionals or clients who **lose 3 disputes** are flagged for manual review.
 
 ---
 

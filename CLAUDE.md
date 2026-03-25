@@ -160,6 +160,27 @@ Every API response uses this standard wrapper — no exceptions:
 - `documents` — pro onboarding uploads (Cédula, insurance)
 - `audit_logs` — GDPR access log (every read/write of health data)
 - `fee_tiers` — platform fee rules (e.g., Founding 50 = 0%)
+- `disputes` — dispute records with resolution + appeal tracking
+- `dispute_evidence` — statements and file attachments per party
+- `dispute_messages` — private Admin ↔ party threads during dispute
+
+---
+
+## Dispute Domain Rules
+
+**Full spec:** [docs/disputes.md](docs/disputes.md) — read this before implementing anything in the dispute domain.
+
+**Key rules for implementation:**
+- Both CLIENT and PRO can open a dispute on a `COMPLETED_PRO` booking
+- When a dispute opens: booking chat → READ-ONLY immediately (no new messages)
+- A separate `dispute_messages` thread opens per party (Admin ↔ Client, Admin ↔ Pro) — parties cannot see each other's thread
+- Payment stays `AUTHORIZED` (frozen) for the entire dispute lifecycle — never capture or release without an explicit resolution action
+- Mutual resolution requires **both parties to click "Accept"** via in-app button — do not auto-resolve on admin proposal alone
+- Appeals require **new evidence** — reject silently if no new evidence is attached
+- The appeal must be assigned to a **different Admin** than the original resolver
+- Write every Admin action (resolution, flag, request-more-info) to `audit_logs`
+- `disputes_lost` counter on `users` increments only when a dispute resolves **against** that user — not when they open one
+- Flag threshold is controlled by `DISPUTE_FLAG_THRESHOLD` env var (default: 3) — never hardcode it
 
 ---
 
@@ -222,6 +243,16 @@ make test-e2e           # requires full stack running
 - Log format: always include `trace_id`, `user_id` (when available), `domain`, `action`
 
 ---
+
+## Configuration & Secrets Rules
+
+- All config is loaded once at startup via `internal/config/config.go`
+- Never call `os.Getenv()` directly in business logic — always use the `Config` struct
+- Never log secret values — `Config.LogValue()` is the only safe way to log config state
+- Required fields in `Config` use `required:"true"` — the app refuses to start if missing
+- `.env` files are gitignored. `.env.example` is the only secrets-related file in git
+- In development: `.env` file loaded automatically. In production: real env vars on the server
+- When adding a new config value: add to `Config` struct + add to `.env.example` with a comment
 
 ## What NOT to Do
 

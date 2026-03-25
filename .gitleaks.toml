@@ -1,0 +1,12 @@
+# Gitleaks configuration — prevents accidental secret commits
+# Install: https://github.com/gitleaks/gitleaks
+# Run manually: gitleaks detect --source . --verbose
+
+title = "SALUSDOMI Gitleaks Config"
+
+[extend]
+useDefault = true  # use the default ruleset (covers AWS, Stripe, JWT, etc.)
+
+[[allowlist.paths]]
+description = "Allow .env.example — it contains only placeholders"
+regex = '''\.env\.example$'''
