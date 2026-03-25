@@ -7,7 +7,8 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     role TEXT CHECK (role IN ('CLIENT', 'PRO', 'ADMIN')),
     stripe_customer_id TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE professionals (
@@ -15,7 +16,8 @@ CREATE TABLE professionals (
     stripe_account_id TEXT,
     last_known_location GEOGRAPHY(Point, 4326),
     service_radius INTEGER DEFAULT 5000,
-    rating DECIMAL(3,2) DEFAULT 0.0
+    rating DECIMAL(3,2) DEFAULT 0.0,
+    is_online BOOLEAN DEFAULT FALSE
 );
 
 CREATE INDEX idx_pro_location ON professionals USING GIST (last_known_location);
@@ -31,7 +33,8 @@ CREATE TABLE profiles (
     blood_type TEXT,
     allergies JSONB, -- Flexible storage for medical lists
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE catalog (
@@ -52,6 +55,11 @@ CREATE TABLE bookings (
     status TEXT DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED_PRO', 'COMPLETED', 'DISPUTED', 'CANCELLED')),
     payment_status TEXT DEFAULT 'AUTHORIZED' CHECK (payment_status IN ('AUTHORIZED', 'CAPTURED', 'REFUNDED')),
     materials_snapshot JSONB, -- Legal proof of what was required at booking time
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    end_time TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE INDEX idx_bookings_pro_id ON bookings(pro_id);
+CREATE INDEX idx_bookings_profile_id ON bookings(profile_id);
+CREATE INDEX idx_bookings_time ON bookings(scheduled_time);

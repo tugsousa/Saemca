@@ -1,0 +1,1 @@
+# Interface for DB interactions (create booking, find nearby)
