@@ -270,3 +270,53 @@ This structure follows Domain-Driven Design (DDD).
 | **MB-WAY / Stripe Timeout** | Webhook endpoint is idempotent; retry logic ensures status is updated only once. |
 | **Insecure Profile Access** | Middleware validates ownership/guardianship of Profile-ID on every request (IDOR Protection). |
 | **PostGIS Precision** | Geography type ensures meter-accuracy for the 5km broadcast radius across Portugal. |
+
+---
+
+## 9. Finalized Stack Decisions
+
+> These decisions were made during pre-development planning (March 2026) and supersede any ambiguity in earlier sections. Full rationale in [stack.md](stack.md).
+
+### Authentication Pattern
+- Access Token: JWT, 15-minute expiry, returned in response body, stored in JS memory only
+- Refresh Token: Opaque UUID, hashed before storage in `refresh_tokens` table, sent via `httpOnly` cookie (30-day expiry)
+- Never localStorage for JWTs — XSS vulnerability on a health data platform is unacceptable
+
+### File Storage
+- **Production:** Cloudflare R2 (zero egress fees, S3-compatible, EU-region available, provider-agnostic)
+- **Development:** MinIO running in Docker (identical S3 API — same Go code, different env vars)
+- Go library: `aws-sdk-go-v2/service/s3`
+
+### Notifications
+- **Email:** Resend (booking confirmations, receipts, verification)
+- **SMS:** Vonage (time-sensitive alerts: "nurse en route", booking confirmed)
+- **Browser Push:** Deferred — add after launch as enhancement
+
+### Frontend State Management
+- **Server state (API data):** TanStack Query
+- **Client/UI state:** Zustand
+- **Routing:** TanStack Router (type-safe)
+- **Forms:** React Hook Form + Zod
+- **Components:** shadcn/ui (Radix UI + Tailwind, owned code not runtime dependency)
+
+### Go Module Name
+`salusdomi.com/api`
+
+### Missing Tables (additions to Section 3)
+The following tables are required but were not in the initial schema:
+- `refresh_tokens` — auth session management (token_hash, user_id, expires_at)
+- `materials` — checklist items per catalog service (feeds the Material Gatekeeper)
+- `reviews` — post-booking ratings (1-5 stars, links booking → profile → professional)
+- `documents` — professional onboarding uploads (Cédula, insurance; stored in R2)
+- `audit_logs` — GDPR access log (every read/write of health data)
+- `fee_tiers` — platform fee rules (e.g., Founding 50 = 0%, standard = X%)
+
+### Observability
+- **Structured Logging:** `slog` stdlib, JSON output → stdout → Better Stack (Logtail)
+- **Error Tracking:** Sentry (Go backend SDK + React frontend SDK)
+- **Metrics/Uptime:** Grafana Cloud free tier
+
+### GPS / Real-Time Location
+- Browser GPS (`navigator.geolocation`) used for basic Pro location on web
+- Real-time ASAP broadcasting deferred until native mobile app is built
+- Web app is the primary platform; mobile app planned for a future phase
