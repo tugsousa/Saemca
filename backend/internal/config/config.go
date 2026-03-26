@@ -92,6 +92,7 @@ func Load() (*Config, error) {
 		".env",
 		"../infra/.env",
 		"../../infra/.env",
+		"../../../infra/.env",
 	} {
 		if err := godotenv.Load(path); err == nil {
 			break

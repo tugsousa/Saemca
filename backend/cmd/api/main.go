@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"salusdomi.com/api/internal/auth"
 	"salusdomi.com/api/internal/config"
 	"salusdomi.com/api/platform"
 )
@@ -131,13 +132,14 @@ func buildRouter(cfg *config.Config, db *pgxpool.Pool) *chi.Mux {
 		r.Use(sentryMiddleware.Handle)
 	}
 
+	// ── Auth domain ───────────────────────────────────────────────────────────
+	authRepo := auth.NewRepository(db)
+	authSvc := auth.NewService(authRepo, cfg.Auth)
+	authHandler := auth.NewHandler(authSvc, cfg.Auth)
+
 	// ── Routes ───────────────────────────────────────────────────────────────
 	r.Get("/health", healthHandler(db))
-
-	// Future domains will be mounted here, e.g.:
-	// r.Mount("/auth",     authHandler.Routes())
-	// r.Mount("/profiles", profileHandler.Routes())
-	// r.Mount("/bookings", bookingHandler.Routes())
+	r.Mount("/auth", authHandler.Routes())
 
 	return r
 }

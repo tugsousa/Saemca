@@ -62,7 +62,7 @@ for home visits. Think Uber for home healthcare.
 
 ### Infrastructure
 - **Containers:** Docker + Docker Compose
-- **Reverse Proxy:** Nginx (SSL termination)
+- **Reverse Proxy:** Caddy (automatic HTTPS via Let's Encrypt)
 - **CDN / DDoS:** Cloudflare
 - **VPS:** Hetzner or OVH (EU-based, GDPR compliant)
 - **Object Storage:** Cloudflare R2
